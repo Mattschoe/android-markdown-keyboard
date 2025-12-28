@@ -2,6 +2,7 @@ package com.creategoodthings.markdownKeyboard.ui
 
 import android.content.Context.AUDIO_SERVICE
 import android.media.AudioManager
+import android.media.Image
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import androidx.compose.foundation.background
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -39,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.creategoodthings.markdownKeyboard.R
 import com.creategoodthings.markdownKeyboard.service.MdIMEService
 import kotlinx.coroutines.Dispatchers
@@ -56,7 +59,7 @@ private val thirdRow = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
 private val fourthRow = listOf("z", "x", "c", "v", "b", "n", "m")
 
 private const val SPACE_BETWEEN_ROWS = 10f
-private const val SPACE_BETWEEN_KEYS = 3f
+private const val SPACE_BETWEEN_KEYS = 2.5f
 
 @Composable
 fun MarkdownKeyboard() {
@@ -66,7 +69,21 @@ fun MarkdownKeyboard() {
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        //region Second Row
+        //region FIRST ROW
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
+        ) {
+            Key(
+                key = KeyItem(
+                    keyAction = BoldSelection,
+                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.bold_icon))
+                )
+            )
+        }
+        //endregion
+        Spacer(Modifier.height(SPACE_BETWEEN_ROWS.dp))
+        //region SECOND ROW
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
@@ -78,6 +95,7 @@ fun MarkdownKeyboard() {
                         keyAction = CommitText(text = value),
                         keyType = KeyText(value = value)
                     ),
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -93,7 +111,7 @@ fun MarkdownKeyboard() {
                     keyAction = IndentForward,
                     keyType = KeyIcon(ImageVector.vectorResource(R.drawable.tab_in_icon))
                 ),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1.5f)
             )
             for (key in thirdRow) {
                 val value = if (capslock) key.uppercase() else key
@@ -102,6 +120,7 @@ fun MarkdownKeyboard() {
                         keyAction = CommitText(text = value),
                         keyType = KeyText(value = value)
                     ),
+                    modifier = Modifier.weight(1f)
                 )
             }
             Key(
@@ -109,7 +128,7 @@ fun MarkdownKeyboard() {
                     keyAction = IndentBack,
                     keyType = KeyIcon(ImageVector.vectorResource(R.drawable.tab_out_icon))
                 ),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1.5f)
             )
         }
         //endregion
@@ -121,11 +140,11 @@ fun MarkdownKeyboard() {
         ) {
             Key(
                 KeyItem(
-                    keyAction = CapsLock,
+                    keyAction = Empty,
                     keyType = KeyIcon(ImageVector.vectorResource(R.drawable.shift_icon))
                 ),
                 onClick = { capslock = !capslock },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1.5f)
             )
             for (key in fourthRow) {
                 val value = if (capslock) key.uppercase() else key
@@ -134,6 +153,7 @@ fun MarkdownKeyboard() {
                         keyAction = CommitText(text = value),
                         keyType = KeyText(value = value)
                     ),
+                    modifier = Modifier.weight(1f)
                 )
             }
             Key(
@@ -141,7 +161,7 @@ fun MarkdownKeyboard() {
                     keyAction = Delete,
                     keyType = KeyIcon(ImageVector.vectorResource(R.drawable.delete_icon))
                 ),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1.5f)
             )
         }
         //endregion
@@ -151,7 +171,55 @@ fun MarkdownKeyboard() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
         ) {
+            //Numbers + Special characters
+            Key(
+                KeyItem(
+                    keyAction = Empty,
+                    keyType = KeyText("?123")
+                ),
+                onClick = { }
+            )
 
+            //Emoji
+            Key(
+                KeyItem(
+                    keyAction = Empty,
+                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.emoji_icon))
+                ),
+                onClick = { }
+            )
+            //Comma
+            Key(
+                KeyItem(
+                    keyAction = CommitText(","),
+                    keyType = KeyText(",")
+                )
+            )
+
+            //Space
+            Key(
+                KeyItem(
+                    keyAction = CommitText(" "),
+                    keyType = KeyText(" ")
+                ),
+                modifier = Modifier.weight(1f)
+            )
+
+            //Dot
+            Key(
+                KeyItem(
+                    keyAction = CommitText("."),
+                    keyType = KeyText(".")
+                )
+            )
+
+            //Enter
+            Key(
+                KeyItem(
+                    keyAction = Enter,
+                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.return_icon))
+                )
+            )
         }
         //endregion
 
@@ -169,7 +237,7 @@ private const val MINUTE_IN_MILLISECONDS = 60000L
 private const val REPEATABLE_ACTION_TIME_DELAY = 60L
 private const val keyBorderWidth = 1f
 private const val keyShape = 5f
-private const val keyHeightPadding = 6f
+private const val minKeyHeight = 40f
 private const val keyWidthPadding = 8f
 private const val vibrateOnClick = true
 private const val soundOnClick = false
@@ -227,6 +295,7 @@ fun Key(
 
     Box(
         modifier = modifier
+            .defaultMinSize(minHeight = minKeyHeight.dp)
             .clip(RoundedCornerShape(keyShape.dp))
             .border(keyBorderWidth.dp, keyBorderColor, shape = RoundedCornerShape(keyShape.dp))
             .background(color = backgroundColor)
@@ -244,11 +313,11 @@ fun Key(
             is KeyText -> {
                 Text(
                     text = type.value,
-                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 22.sp,
                     color = keyColor,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .padding(horizontal = keyWidthPadding.dp, vertical = keyHeightPadding.dp)
+                        .padding(horizontal = keyWidthPadding.dp)
                 )
                 if (type.showDescription) {
                     //TODO: ADD DESCRIPTION
@@ -262,7 +331,7 @@ fun Key(
                     tint = keyColor,
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .padding(horizontal = keyWidthPadding.dp, vertical = keyHeightPadding.dp)
+                        .padding(horizontal = keyWidthPadding.dp)
                 )
             }
         }
@@ -280,6 +349,22 @@ fun performKeyAction(
             conn.commitText(text, 1)
         }
         Delete -> {
+            val surroundingText = conn.getSurroundingText(2, 2, 0)
+            if (surroundingText != null) {
+                val text = surroundingText.text
+                val prefix = text.subSequence(0, surroundingText.selectionStart)
+                val suffix = text.subSequence(surroundingText.selectionEnd, text.length)
+
+                if (prefix.isNotEmpty() && suffix.isNotEmpty()) {
+                    if (prefix == "**" && suffix == "**") {
+                        conn.deleteSurroundingText(2, 2)
+                        return
+                    } else if (prefix.last() == '*' && suffix.first() == '*') {
+                        conn.deleteSurroundingText(1, 1)
+                        return
+                    }
+                }
+            }
             val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL)
             conn.sendKeyEvent(event)
         }
@@ -290,9 +375,18 @@ fun performKeyAction(
             val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
             conn.sendKeyEvent(event)
         }
-        CapsLock -> {}
         BoldSelection -> {
-
+            conn.beginBatchEdit()
+            val selectedText = conn.getSelectedText(0)
+            if (selectedText.isNullOrEmpty()) {
+                conn.commitText("**", 1)
+                conn.commitText("**", 0)
+            } else {
+                conn.deleteSurroundingText(selectedText.length, 0)
+                val newText = "**$selectedText**"
+                conn.commitText(newText, 1)
+            }
+            conn.endBatchEdit()
         }
         CursiveSelection -> {
         }
@@ -317,6 +411,7 @@ fun performKeyAction(
         UnderlineSelection -> {
 
         }
+        Empty -> {}
     }
 }
 
@@ -331,12 +426,12 @@ sealed interface KeyAction {
     data object Delete : KeyAction
     data object Done : KeyAction
     data object Enter : KeyAction
-    data object CapsLock : KeyAction
     data object IndentForward : KeyAction
     data object IndentBack : KeyAction
     data object BoldSelection : KeyAction
     data object UnderlineSelection : KeyAction
     data object CursiveSelection : KeyAction
+    data object Empty : KeyAction
 }
 
 sealed class KeyType(
