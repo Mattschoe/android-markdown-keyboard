@@ -74,10 +74,27 @@ fun MarkdownKeyboard() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
         ) {
+            //Bold
             Key(
                 key = KeyItem(
                     keyAction = BoldSelection,
                     keyType = KeyIcon(ImageVector.vectorResource(R.drawable.bold_icon))
+                )
+            )
+
+            //Italic
+            Key(
+                key = KeyItem(
+                    keyAction = CursiveSelection,
+                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.italic_icon))
+                )
+            )
+
+            //Code
+            Key(
+                key = KeyItem(
+                    keyAction = CodeSelection,
+                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.code_icon))
                 )
             )
         }
@@ -382,13 +399,27 @@ fun performKeyAction(
                 conn.commitText("**", 1)
                 conn.commitText("**", 0)
             } else {
-                conn.deleteSurroundingText(selectedText.length, 0)
-                val newText = "**$selectedText**"
-                conn.commitText(newText, 1)
+                conn.commitText("", 1)
+                conn.commitText("**", 1)
+                conn.commitText(selectedText, 1)
+                conn.commitText("**", 0)
             }
             conn.endBatchEdit()
         }
         CursiveSelection -> {
+            conn.beginBatchEdit()
+            val selectedText = conn.getSelectedText(0)
+            if (selectedText.isNullOrEmpty()) {
+                conn.commitText("*", 1)
+                conn.commitText("*", 0)
+            } else {
+                conn.commitText("", 1)
+                conn.commitText("*", 1)
+                conn.commitText(selectedText, 1)
+                conn.commitText("*", 0)
+            }
+
+            conn.endBatchEdit()
         }
         IndentForward -> {
             conn.beginBatchEdit()
@@ -408,9 +439,23 @@ fun performKeyAction(
             conn.commitText(newLine, 1)
             conn.endBatchEdit()
         }
-        UnderlineSelection -> {
-
+        CodeSelection -> {
+            conn.beginBatchEdit()
+            val selectedText = conn.getSelectedText(0)
+            if (selectedText.isNullOrEmpty()) {
+                conn.commitText("`", 1)
+                conn.commitText("`", 0)
+            } else {
+                conn.commitText("", 1)
+                conn.commitText("`", 1)
+                conn.commitText(selectedText, 1)
+                conn.commitText("`", 0)
+            }
+            conn.endBatchEdit()
         }
+        KeyAction.Image -> TODO()
+        Link -> TODO()
+        Table -> TODO()
         Empty -> {}
     }
 }
@@ -429,8 +474,11 @@ sealed interface KeyAction {
     data object IndentForward : KeyAction
     data object IndentBack : KeyAction
     data object BoldSelection : KeyAction
-    data object UnderlineSelection : KeyAction
     data object CursiveSelection : KeyAction
+    data object CodeSelection : KeyAction
+    data object Table : KeyAction
+    data object Link : KeyAction
+    data object Image : KeyAction
     data object Empty : KeyAction
 }
 
