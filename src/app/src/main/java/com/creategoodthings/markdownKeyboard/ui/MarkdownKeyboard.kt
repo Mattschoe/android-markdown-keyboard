@@ -61,6 +61,13 @@ private val fourthRow = listOf("z", "x", "c", "v", "b", "n", "m")
 private const val SPACE_BETWEEN_ROWS = 10f
 private const val SPACE_BETWEEN_KEYS = 2.5f
 
+private const val ITALIC = "*"
+private const val BOLD = "**"
+private const val CODE = "`"
+private const val UNORDERED_LIST = "- "
+private const val ORDERED_LIST = "1. "
+private const val CHECKBOX = "- [ ] "
+
 @Composable
 fun MarkdownKeyboard() {
     var capslock by remember { mutableStateOf(false) }
@@ -87,6 +94,29 @@ fun MarkdownKeyboard() {
                 key = KeyItem(
                     keyAction = CursiveSelection,
                     keyType = KeyIcon(ImageVector.vectorResource(R.drawable.italic_icon))
+                )
+            )
+
+            //Unordered List
+            Key(
+                KeyItem(
+                    keyAction = CommitText(UNORDERED_LIST),
+                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.unordered_list_icon))
+                )
+            )
+            //Ordered List
+            Key(
+                KeyItem(
+                    keyAction = CommitText(ORDERED_LIST),
+                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.ordered_list_icon))
+                )
+            )
+
+            //Checkbox
+            Key(
+                KeyItem(
+                    keyAction = CommitText(CHECKBOX),
+                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.checkbox_icon))
                 )
             )
 
@@ -373,13 +403,20 @@ fun performKeyAction(
                 val suffix = text.subSequence(surroundingText.selectionEnd, text.length)
 
                 if (prefix.isNotEmpty() && suffix.isNotEmpty()) {
-                    if (prefix == "**" && suffix == "**") {
+                    //region TEXT STYLE
+                    if (prefix == BOLD && suffix == BOLD) {
                         conn.deleteSurroundingText(2, 2)
                         return
-                    } else if (prefix.last() == '*' && suffix.first() == '*') {
+                    }
+
+                    val lastPrefix = prefix.last().toString()
+                    val firstSuffix = prefix.first().toString()
+                    if ((lastPrefix == ITALIC || lastPrefix == CODE) && (firstSuffix == ITALIC || firstSuffix == CODE)) {
                         conn.deleteSurroundingText(1, 1)
                         return
                     }
+                    //endregion
+
                 }
             }
             val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL)
@@ -396,13 +433,13 @@ fun performKeyAction(
             conn.beginBatchEdit()
             val selectedText = conn.getSelectedText(0)
             if (selectedText.isNullOrEmpty()) {
-                conn.commitText("**", 1)
-                conn.commitText("**", 0)
+                conn.commitText(BOLD, 1)
+                conn.commitText(BOLD, 0)
             } else {
                 conn.commitText("", 1)
-                conn.commitText("**", 1)
+                conn.commitText(BOLD, 1)
                 conn.commitText(selectedText, 1)
-                conn.commitText("**", 0)
+                conn.commitText(BOLD, 0)
             }
             conn.endBatchEdit()
         }
@@ -410,13 +447,13 @@ fun performKeyAction(
             conn.beginBatchEdit()
             val selectedText = conn.getSelectedText(0)
             if (selectedText.isNullOrEmpty()) {
-                conn.commitText("*", 1)
-                conn.commitText("*", 0)
+                conn.commitText(ITALIC, 1)
+                conn.commitText(ITALIC, 0)
             } else {
                 conn.commitText("", 1)
-                conn.commitText("*", 1)
+                conn.commitText(ITALIC, 1)
                 conn.commitText(selectedText, 1)
-                conn.commitText("*", 0)
+                conn.commitText(ITALIC, 0)
             }
 
             conn.endBatchEdit()
@@ -443,13 +480,13 @@ fun performKeyAction(
             conn.beginBatchEdit()
             val selectedText = conn.getSelectedText(0)
             if (selectedText.isNullOrEmpty()) {
-                conn.commitText("`", 1)
-                conn.commitText("`", 0)
+                conn.commitText(CODE, 1)
+                conn.commitText(CODE, 0)
             } else {
                 conn.commitText("", 1)
-                conn.commitText("`", 1)
+                conn.commitText(CODE, 1)
                 conn.commitText(selectedText, 1)
-                conn.commitText("`", 0)
+                conn.commitText(CODE, 0)
             }
             conn.endBatchEdit()
         }
