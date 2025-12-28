@@ -2,7 +2,6 @@ package com.creategoodthings.markdownKeyboard.ui
 
 import android.content.Context.AUDIO_SERVICE
 import android.media.AudioManager
-import android.media.Image
 import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import androidx.compose.foundation.background
@@ -396,14 +395,14 @@ fun performKeyAction(
             conn.commitText(text, 1)
         }
         Delete -> {
-            val surroundingText = conn.getSurroundingText(2, 2, 0)
-            if (surroundingText != null) {
-                val text = surroundingText.text
-                val prefix = text.subSequence(0, surroundingText.selectionStart)
-                val suffix = text.subSequence(surroundingText.selectionEnd, text.length)
+            //region TEXT STYLE
+            val stylingSurroundingText = conn.getSurroundingText(2, 2, 0)
+            if (stylingSurroundingText != null) {
+                val text = stylingSurroundingText.text
+                val prefix = text.subSequence(0, stylingSurroundingText.selectionStart)
+                val suffix = text.subSequence(stylingSurroundingText.selectionEnd, text.length)
 
                 if (prefix.isNotEmpty() && suffix.isNotEmpty()) {
-                    //region TEXT STYLE
                     if (prefix == BOLD && suffix == BOLD) {
                         conn.deleteSurroundingText(2, 2)
                         return
@@ -415,10 +414,37 @@ fun performKeyAction(
                         conn.deleteSurroundingText(1, 1)
                         return
                     }
-                    //endregion
-
                 }
             }
+            //endregion
+
+            //region LIST
+            val listSurroundingText = conn.getSurroundingText(6, 0, 0)
+            if (listSurroundingText != null) {
+                val prefix = listSurroundingText
+                    .text
+                    .subSequence(0, listSurroundingText.selectionStart)
+                    .split("\n")
+                    .last()
+
+                if (prefix.isNotEmpty()) {
+                    if (prefix == UNORDERED_LIST) {
+                        conn.deleteSurroundingText(UNORDERED_LIST.length, 0)
+                        return
+                    }
+
+                    if (prefix == ORDERED_LIST) {
+                        conn.deleteSurroundingText(ORDERED_LIST.length, 0)
+                        return
+                    }
+
+                    if (prefix == CHECKBOX || prefix == CHECKBOX.dropLast(1)) {
+                        conn.deleteSurroundingText(CHECKBOX.length, 0)
+                        return
+                    }
+                }
+            }
+            //endregion
             val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL)
             conn.sendKeyEvent(event)
         }
