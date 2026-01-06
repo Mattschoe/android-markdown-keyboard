@@ -1,563 +1,271 @@
 package com.creategoodthings.markdownKeyboard.ui
 
-import android.content.Context.AUDIO_SERVICE
-import android.media.AudioManager
-import android.view.HapticFeedbackConstants
-import android.view.KeyEvent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeGestures
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.creategoodthings.markdownKeyboard.R
-import com.creategoodthings.markdownKeyboard.service.MdIMEService
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancelChildren
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
-import com.creategoodthings.markdownKeyboard.ui.KeyType.*
-import com.creategoodthings.markdownKeyboard.ui.KeyAction.*
+import com.creategoodthings.markdownKeyboard.editor.InlineStyle
+import com.creategoodthings.markdownKeyboard.editor.KeyAction
+import com.creategoodthings.markdownKeyboard.editor.ListKind
 
-
-private val firstRow = listOf(null)
-private val secondRow = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
-private val thirdRow = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
-private val fourthRow = listOf("z", "x", "c", "v", "b", "n", "m")
+private val LETTER_ROW_TOP = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
+private val LETTER_ROW_MIDDLE = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
+private val LETTER_ROW_BOTTOM = listOf("z", "x", "c", "v", "b", "n", "m")
 
 private const val SPACE_BETWEEN_ROWS = 10f
 private const val SPACE_BETWEEN_KEYS = 2.5f
 
-private const val ITALIC = "*"
-private const val BOLD = "**"
-private const val CODE = "`"
-private const val UNORDERED_LIST = "- "
-private const val ORDERED_LIST = "1. "
-private const val CHECKBOX = "- [ ] "
+/** Combining long stroke overlay: renders the label as a struck-through S. */
+private const val STRIKETHROUGH_LABEL = "S̶"
 
 @Composable
-fun MarkdownKeyboard() {
+fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
     var capslock by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        //region FIRST ROW
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
-        ) {
-            //Bold
-            Key(
-                key = KeyItem(
-                    keyAction = BoldSelection,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.bold_icon))
-                )
-            )
-
-            //Italic
-            Key(
-                key = KeyItem(
-                    keyAction = CursiveSelection,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.italic_icon))
-                )
-            )
-
-            //Unordered List
+        KeyRow {
             Key(
                 KeyItem(
-                    keyAction = CommitText(UNORDERED_LIST),
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.unordered_list_icon))
-                )
+                    action = KeyAction.ToggleInlineStyle(InlineStyle.Bold),
+                    label = KeyLabel.Icon(icon(R.drawable.bold_icon), R.string.key_bold),
+                ),
+                onAction, Modifier.weight(1f),
             )
-            //Ordered List
             Key(
                 KeyItem(
-                    keyAction = CommitText(ORDERED_LIST),
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.ordered_list_icon))
-                )
+                    action = KeyAction.ToggleInlineStyle(InlineStyle.Italic),
+                    label = KeyLabel.Icon(icon(R.drawable.italic_icon), R.string.key_italic),
+                ),
+                onAction, Modifier.weight(1f),
             )
-
-            //Checkbox
             Key(
                 KeyItem(
-                    keyAction = CommitText(CHECKBOX),
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.checkbox_icon))
-                )
+                    action = KeyAction.ToggleInlineStyle(InlineStyle.Strikethrough),
+                    label = KeyLabel.Text(STRIKETHROUGH_LABEL, R.string.key_strikethrough),
+                ),
+                onAction, Modifier.weight(1f),
             )
-
-            //Code
             Key(
-                key = KeyItem(
-                    keyAction = CodeSelection,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.code_icon))
-                )
+                KeyItem(
+                    action = KeyAction.ToggleInlineStyle(InlineStyle.Code),
+                    label = KeyLabel.Icon(icon(R.drawable.code_icon), R.string.key_code),
+                    longPressAction = KeyAction.InsertCodeBlock,
+                ),
+                onAction, Modifier.weight(1f),
+            )
+            Key(
+                KeyItem(
+                    action = KeyAction.CycleHeading,
+                    label = KeyLabel.Icon(icon(R.drawable.heading_icon), R.string.key_heading),
+                    longPressAction = KeyAction.InsertHorizontalRule,
+                ),
+                onAction, Modifier.weight(1f),
+            )
+            Key(
+                KeyItem(
+                    action = KeyAction.ToggleQuote,
+                    label = KeyLabel.Icon(icon(R.drawable.quote_icon), R.string.key_quote),
+                ),
+                onAction, Modifier.weight(1f),
             )
         }
-        //endregion
-        Spacer(Modifier.height(SPACE_BETWEEN_ROWS.dp))
-        //region SECOND ROW
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
-        ) {
-            for (key in secondRow) {
-                val value = if (capslock) key.uppercase() else key
-                Key(
-                    key = KeyItem(
-                        keyAction = CommitText(text = value),
-                        keyType = KeyText(value = value)
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-        //endregion
-        Spacer(Modifier.height(SPACE_BETWEEN_ROWS.dp))
-        //region THIRD ROW
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
-        ) {
+        RowGap()
+
+        KeyRow {
             Key(
                 KeyItem(
-                    keyAction = IndentForward,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.tab_in_icon))
+                    action = KeyAction.ToggleList(ListKind.Bullet),
+                    label = KeyLabel.Icon(icon(R.drawable.unordered_list_icon), R.string.key_bullet_list),
                 ),
-                modifier = Modifier.weight(1.5f)
+                onAction, Modifier.weight(1f),
             )
-            for (key in thirdRow) {
-                val value = if (capslock) key.uppercase() else key
-                Key(
-                    key = KeyItem(
-                        keyAction = CommitText(text = value),
-                        keyType = KeyText(value = value)
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
             Key(
                 KeyItem(
-                    keyAction = IndentBack,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.tab_out_icon))
+                    action = KeyAction.ToggleList(ListKind.Ordered),
+                    label = KeyLabel.Icon(icon(R.drawable.ordered_list_icon), R.string.key_ordered_list),
+                    longPressAction = KeyAction.NormalizeList,
                 ),
-                modifier = Modifier.weight(1.5f)
+                onAction, Modifier.weight(1f),
+            )
+            Key(
+                KeyItem(
+                    action = KeyAction.ToggleList(ListKind.Task),
+                    label = KeyLabel.Icon(icon(R.drawable.checkbox_icon), R.string.key_task_list),
+                ),
+                onAction, Modifier.weight(1f),
+            )
+            Key(
+                KeyItem(
+                    action = KeyAction.InsertLink,
+                    label = KeyLabel.Icon(icon(R.drawable.link_icon), R.string.key_link),
+                ),
+                onAction, Modifier.weight(1f),
+            )
+            Key(
+                KeyItem(
+                    action = KeyAction.InsertImage,
+                    label = KeyLabel.Icon(icon(R.drawable.image_icon), R.string.key_image),
+                ),
+                onAction, Modifier.weight(1f),
+            )
+            Key(
+                KeyItem(
+                    action = KeyAction.InsertTable,
+                    label = KeyLabel.Icon(icon(R.drawable.table_icon), R.string.key_table),
+                ),
+                onAction, Modifier.weight(1f),
             )
         }
-        //endregion
-        Spacer(Modifier.height(SPACE_BETWEEN_ROWS.dp))
-        //region FOURTH ROW
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
-        ) {
+        RowGap()
+
+        KeyRow {
+            LetterKeys(LETTER_ROW_TOP, capslock, onAction)
+        }
+        RowGap()
+
+        KeyRow {
             Key(
                 KeyItem(
-                    keyAction = Empty,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.shift_icon))
+                    action = KeyAction.IndentForward,
+                    label = KeyLabel.Icon(icon(R.drawable.tab_in_icon), R.string.key_indent),
                 ),
+                onAction, Modifier.weight(1.5f),
+            )
+            LetterKeys(LETTER_ROW_MIDDLE, capslock, onAction)
+            Key(
+                KeyItem(
+                    action = KeyAction.IndentBack,
+                    label = KeyLabel.Icon(icon(R.drawable.tab_out_icon), R.string.key_outdent),
+                ),
+                onAction, Modifier.weight(1.5f),
+            )
+        }
+        RowGap()
+
+        KeyRow {
+            Key(
+                KeyItem(
+                    action = KeyAction.Noop,
+                    label = KeyLabel.Icon(icon(R.drawable.shift_icon), R.string.key_shift),
+                ),
+                onAction,
+                Modifier.weight(1.5f),
                 onClick = { capslock = !capslock },
-                modifier = Modifier.weight(1.5f)
             )
-            for (key in fourthRow) {
-                val value = if (capslock) key.uppercase() else key
-                Key(
-                    key = KeyItem(
-                        keyAction = CommitText(text = value),
-                        keyType = KeyText(value = value)
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            LetterKeys(LETTER_ROW_BOTTOM, capslock, onAction)
             Key(
                 KeyItem(
-                    keyAction = Delete,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.delete_icon))
+                    action = KeyAction.Backspace,
+                    label = KeyLabel.Icon(icon(R.drawable.delete_icon), R.string.key_backspace),
+                    repeatable = true,
                 ),
-                modifier = Modifier.weight(1.5f)
+                onAction, Modifier.weight(1.5f),
             )
         }
-        //endregion
-        Spacer(Modifier.height(SPACE_BETWEEN_ROWS.dp))
-        //region FIFTH ROW
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp)
-        ) {
-            //Numbers + Special characters
+        RowGap()
+
+        KeyRow {
+            Key(
+                KeyItem(KeyAction.Noop, KeyLabel.Text("?123", R.string.key_symbols)),
+                onAction,
+            )
             Key(
                 KeyItem(
-                    keyAction = Empty,
-                    keyType = KeyText("?123")
+                    action = KeyAction.Noop,
+                    label = KeyLabel.Icon(icon(R.drawable.emoji_icon), R.string.key_emoji),
                 ),
-                onClick = { }
+                onAction,
             )
-
-            //Emoji
+            Key(KeyItem(KeyAction.CommitText(","), KeyLabel.Text(",")), onAction)
+            Key(
+                KeyItem(KeyAction.CommitText(" "), KeyLabel.Text(" "), repeatable = true),
+                onAction,
+                Modifier.weight(1f),
+            )
+            Key(KeyItem(KeyAction.CommitText("."), KeyLabel.Text(".")), onAction)
             Key(
                 KeyItem(
-                    keyAction = Empty,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.emoji_icon))
+                    action = KeyAction.Enter,
+                    label = KeyLabel.Icon(icon(R.drawable.return_icon), R.string.key_enter),
                 ),
-                onClick = { }
-            )
-            //Comma
-            Key(
-                KeyItem(
-                    keyAction = CommitText(","),
-                    keyType = KeyText(",")
-                )
-            )
-
-            //Space
-            Key(
-                KeyItem(
-                    keyAction = CommitText(" "),
-                    keyType = KeyText(" ")
-                ),
-                modifier = Modifier.weight(1f)
-            )
-
-            //Dot
-            Key(
-                KeyItem(
-                    keyAction = CommitText("."),
-                    keyType = KeyText(".")
-                )
-            )
-
-            //Enter
-            Key(
-                KeyItem(
-                    keyAction = Enter,
-                    keyType = KeyIcon(ImageVector.vectorResource(R.drawable.return_icon))
-                )
+                onAction,
             )
         }
-        //endregion
-
 
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
-                .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                .windowInsetsBottomHeight(systemAffordanceInsets())
         )
     }
 }
 
-
-private const val MINUTE_IN_MILLISECONDS = 60000L
-private const val REPEATABLE_ACTION_TIME_DELAY = 60L
-private const val keyBorderWidth = 1f
-private const val keyShape = 5f
-private const val minKeyHeight = 40f
-private const val keyWidthPadding = 8f
-private const val vibrateOnClick = true
-private const val soundOnClick = false
+/**
+ * The strip along the bottom that the OS keeps for itself.
+ *
+ * `navigationBars` alone is not enough: the IME window gets a *reduced* navigation bar inset
+ * (24dp on gesture navigation) while the system still paints and taps its own affordances —
+ * the IME switcher, the OEM's voice button — in a taller band (48dp) that hangs over the
+ * bottom key row. `safeGestures` reports that taller band (`systemGestures` +
+ * `mandatorySystemGestures` + `tappableElement`), so the union of the two is the first row
+ * of pixels a key may safely occupy under either navigation mode.
+ */
 @Composable
-fun Key(
-    key: KeyItem,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
+private fun systemAffordanceInsets(): WindowInsets =
+    WindowInsets.safeGestures.union(WindowInsets.navigationBars)
+
+@Composable
+private fun RowScope.LetterKeys(
+    letters: List<String>,
+    capslock: Boolean,
+    onAction: (KeyAction) -> Unit,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val context = LocalContext.current
-    val ime = context as MdIMEService
-    val coroutineScope = rememberCoroutineScope()
-    var longClickPressed by remember { mutableStateOf(false) }
-    val view = LocalView.current
-    val audioManager = context.getSystemService(AUDIO_SERVICE) as AudioManager
-    val backgroundColor =
-        if (!isPressed) MaterialTheme.colorScheme.secondary
-        else MaterialTheme.colorScheme.primary
-    val keyColor =
-        if (!isPressed) MaterialTheme.colorScheme.onSecondary
-        else MaterialTheme.colorScheme.onPrimary
-    val keyBorderColor = MaterialTheme.colorScheme.outline
-
-    fun soundAndVibrate() {
-        if (vibrateOnClick) view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-        if (soundOnClick) audioManager.playSoundEffect(AudioManager.FX_KEY_CLICK, 0.1f)
-    }
-
-    fun onLongClick() {
-        if (key.keyAction != Done) {
-            longClickPressed = true
-            coroutineScope.launch(Dispatchers.IO) {
-                withTimeout(MINUTE_IN_MILLISECONDS) {
-                    while (true) {
-                        performKeyAction(key.keyAction, ime)
-                        delay(REPEATABLE_ACTION_TIME_DELAY)
-                    }
-                }
-            }
-        } else {
-            performKeyAction(key.keyAction, ime)
-        }
-        soundAndVibrate()
-    }
-
-    LaunchedEffect(isPressed, longClickPressed) {
-        if (isPressed) soundAndVibrate()
-        else if (longClickPressed) {
-            coroutineScope.coroutineContext.cancelChildren()
-            longClickPressed = false
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .defaultMinSize(minHeight = minKeyHeight.dp)
-            .clip(RoundedCornerShape(keyShape.dp))
-            .border(keyBorderWidth.dp, keyBorderColor, shape = RoundedCornerShape(keyShape.dp))
-            .background(color = backgroundColor)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    performKeyAction(key.keyAction, ime)
-                    onClick?.invoke()
-                },
-                onLongClick = { onLongClick() }
-            )
-    ) {
-        when (val type = key.keyType) {
-            is KeyText -> {
-                Text(
-                    text = type.value,
-                    fontSize = 22.sp,
-                    color = keyColor,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = keyWidthPadding.dp)
-                )
-                if (type.showDescription) {
-                    //TODO: ADD DESCRIPTION
-                }
-            }
-
-            is KeyIcon -> {
-                Icon(
-                    imageVector = type.icon,
-                    contentDescription = null, //TODO: ADD DESCRIPTION
-                    tint = keyColor,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = keyWidthPadding.dp)
-                )
-            }
-        }
+    for (letter in letters) {
+        val value = if (capslock) letter.uppercase() else letter
+        Key(
+            key = KeyItem(KeyAction.CommitText(value), KeyLabel.Text(value)),
+            onAction = onAction,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
-fun performKeyAction(
-    action: KeyAction,
-    ime: MdIMEService
-) {
-    val conn = ime.currentInputConnection
-    when (action) {
-        is CommitText -> {
-            val text = action.text
-            conn.commitText(text, 1)
-        }
-        Delete -> {
-            //region TEXT STYLE
-            val stylingSurroundingText = conn.getSurroundingText(2, 2, 0)
-            if (stylingSurroundingText != null) {
-                val text = stylingSurroundingText.text
-                val prefix = text.subSequence(0, stylingSurroundingText.selectionStart)
-                val suffix = text.subSequence(stylingSurroundingText.selectionEnd, text.length)
-
-                if (prefix.isNotEmpty() && suffix.isNotEmpty()) {
-                    if (prefix == BOLD && suffix == BOLD) {
-                        conn.deleteSurroundingText(2, 2)
-                        return
-                    }
-
-                    val lastPrefix = prefix.last().toString()
-                    val firstSuffix = prefix.first().toString()
-                    if ((lastPrefix == ITALIC || lastPrefix == CODE) && (firstSuffix == ITALIC || firstSuffix == CODE)) {
-                        conn.deleteSurroundingText(1, 1)
-                        return
-                    }
-                }
-            }
-            //endregion
-
-            //region LIST
-            val listSurroundingText = conn.getSurroundingText(6, 0, 0)
-            if (listSurroundingText != null) {
-                val prefix = listSurroundingText
-                    .text
-                    .subSequence(0, listSurroundingText.selectionStart)
-                    .split("\n")
-                    .last()
-
-                if (prefix.isNotEmpty()) {
-                    if (prefix == UNORDERED_LIST) {
-                        conn.deleteSurroundingText(UNORDERED_LIST.length, 0)
-                        return
-                    }
-
-                    if (prefix == ORDERED_LIST) {
-                        conn.deleteSurroundingText(ORDERED_LIST.length, 0)
-                        return
-                    }
-
-                    if (prefix == CHECKBOX || prefix == CHECKBOX.dropLast(1)) {
-                        conn.deleteSurroundingText(CHECKBOX.length, 0)
-                        return
-                    }
-                }
-            }
-            //endregion
-            val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL)
-            conn.sendKeyEvent(event)
-        }
-        Done -> {
-            ime.requestHideSelf(0)
-        }
-        Enter -> {
-            val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
-            conn.sendKeyEvent(event)
-        }
-        BoldSelection -> {
-            conn.beginBatchEdit()
-            val selectedText = conn.getSelectedText(0)
-            if (selectedText.isNullOrEmpty()) {
-                conn.commitText(BOLD, 1)
-                conn.commitText(BOLD, 0)
-            } else {
-                conn.commitText("", 1)
-                conn.commitText(BOLD, 1)
-                conn.commitText(selectedText, 1)
-                conn.commitText(BOLD, 0)
-            }
-            conn.endBatchEdit()
-        }
-        CursiveSelection -> {
-            conn.beginBatchEdit()
-            val selectedText = conn.getSelectedText(0)
-            if (selectedText.isNullOrEmpty()) {
-                conn.commitText(ITALIC, 1)
-                conn.commitText(ITALIC, 0)
-            } else {
-                conn.commitText("", 1)
-                conn.commitText(ITALIC, 1)
-                conn.commitText(selectedText, 1)
-                conn.commitText(ITALIC, 0)
-            }
-
-            conn.endBatchEdit()
-        }
-        IndentForward -> {
-            conn.beginBatchEdit()
-            val prefix = conn.getTextBeforeCursor(100, 0)
-            val thisLine = prefix?.getThisLine() ?: return
-            conn.deleteSurroundingText(thisLine.length, 0)
-            val newLine = thisLine.replaceFirst("", "    ")
-            conn.commitText(newLine, 1)
-            conn.endBatchEdit()
-        }
-        IndentBack -> {
-            conn.beginBatchEdit()
-            val prefix = conn.getTextBeforeCursor(100, 0)
-            val thisLine = prefix?.getThisLine() ?: return
-            conn.deleteSurroundingText(thisLine.length, 0)
-            val newLine = thisLine.replaceFirst("    ", "")
-            conn.commitText(newLine, 1)
-            conn.endBatchEdit()
-        }
-        CodeSelection -> {
-            conn.beginBatchEdit()
-            val selectedText = conn.getSelectedText(0)
-            if (selectedText.isNullOrEmpty()) {
-                conn.commitText(CODE, 1)
-                conn.commitText(CODE, 0)
-            } else {
-                conn.commitText("", 1)
-                conn.commitText(CODE, 1)
-                conn.commitText(selectedText, 1)
-                conn.commitText(CODE, 0)
-            }
-            conn.endBatchEdit()
-        }
-        KeyAction.Image -> TODO()
-        Link -> TODO()
-        Table -> TODO()
-        Empty -> {}
-    }
+@Composable
+private fun KeyRow(content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(SPACE_BETWEEN_KEYS.dp),
+        content = content,
+    )
 }
 
-fun CharSequence.getThisLine(): String {
-    return this.split("\n").last()
-}
+@Composable
+private fun ColumnScope.RowGap() = Spacer(Modifier.height(SPACE_BETWEEN_ROWS.dp))
 
-data class KeyItem(val keyAction: KeyAction, val keyType: KeyType)
-
-sealed interface KeyAction {
-    data class CommitText(val text: String) : KeyAction
-    data object Delete : KeyAction
-    data object Done : KeyAction
-    data object Enter : KeyAction
-    data object IndentForward : KeyAction
-    data object IndentBack : KeyAction
-    data object BoldSelection : KeyAction
-    data object CursiveSelection : KeyAction
-    data object CodeSelection : KeyAction
-    data object Table : KeyAction
-    data object Link : KeyAction
-    data object Image : KeyAction
-    data object Empty : KeyAction
-}
-
-sealed class KeyType(
-    open val description: Int? = null,
-    open val showDescription: Boolean = false
-) {
-    data class KeyIcon(
-        val icon: ImageVector,
-        override val description: Int? = null,
-        override val showDescription: Boolean = false
-    ) : KeyType(description, showDescription)
-
-    data class KeyText(
-        val value: String,
-        override val description: Int? = null,
-        override val showDescription: Boolean = false
-    ) : KeyType(description, showDescription)
-}
+@Composable
+private fun icon(id: Int): ImageVector = ImageVector.vectorResource(id)

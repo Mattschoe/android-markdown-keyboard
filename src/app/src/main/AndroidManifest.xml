@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name=".service.MdIMEService"
+            android:name=".ime.MdIMEService"
             android:exported="false"
             android:label="Markdown Keyboard"
             android:permission="android.permission.BIND_INPUT_METHOD">

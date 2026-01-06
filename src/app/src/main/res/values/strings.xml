@@ -1,3 +1,24 @@
 <resources>
     <string name="app_name">markdown Keyboard</string>
+
+    <!-- Key content descriptions, read out by accessibility services. -->
+    <string name="key_bold">Bold</string>
+    <string name="key_italic">Italic</string>
+    <string name="key_strikethrough">Strikethrough</string>
+    <string name="key_code">Inline code, hold for code block</string>
+    <string name="key_heading">Heading, hold for horizontal rule</string>
+    <string name="key_quote">Block quote</string>
+    <string name="key_bullet_list">Bullet list</string>
+    <string name="key_ordered_list">Numbered list, hold to renumber</string>
+    <string name="key_task_list">Checkbox list</string>
+    <string name="key_link">Link</string>
+    <string name="key_image">Image</string>
+    <string name="key_table">Table</string>
+    <string name="key_indent">Indent</string>
+    <string name="key_outdent">Outdent</string>
+    <string name="key_shift">Shift</string>
+    <string name="key_backspace">Backspace</string>
+    <string name="key_symbols">Symbols</string>
+    <string name="key_emoji">Emoji</string>
+    <string name="key_enter">Enter</string>
 </resources>
