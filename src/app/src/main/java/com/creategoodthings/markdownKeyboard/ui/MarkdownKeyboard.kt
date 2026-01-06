@@ -452,8 +452,32 @@ fun performKeyAction(
             ime.requestHideSelf(0)
         }
         Enter -> {
-            val event = KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)
-            conn.sendKeyEvent(event)
+            conn.beginBatchEdit()
+            conn.commitText("\n", 1)
+
+            val previousLine = conn
+                .getSurroundingText(100, 0, 0)
+                ?.text
+                ?.split("\n")
+                ?.let { it.getOrNull(it.lastIndex) }
+
+            if (previousLine != null) {
+                val stringBuilder = StringBuilder()
+                val indentCount = previousLine.takeWhile { it == ' ' }.length
+                for (i in 0..<indentCount step 4) {
+                    stringBuilder.append("    ")
+                }
+
+                val listPrefix = previousLine
+                    .dropWhile { it == ' ' }
+                    .take(CHECKBOX.length)
+                if (listPrefix.contains(CHECKBOX)) stringBuilder.append(CHECKBOX)
+                else if (listPrefix.contains(UNORDERED_LIST)) stringBuilder.append(UNORDERED_LIST)
+                else if (listPrefix.isOrderedList()) stringBuilder.append(listPrefix.nextElement())
+
+                conn.commitText(stringBuilder, 1)
+            }
+            conn.endBatchEdit()
         }
         BoldSelection -> {
             conn.beginBatchEdit()
@@ -487,19 +511,23 @@ fun performKeyAction(
         IndentForward -> {
             conn.beginBatchEdit()
             val prefix = conn.getTextBeforeCursor(100, 0)
-            val thisLine = prefix?.getThisLine() ?: return
-            conn.deleteSurroundingText(thisLine.length, 0)
-            val newLine = thisLine.replaceFirst("", "    ")
-            conn.commitText(newLine, 1)
+            val thisLine = prefix?.getThisLine()
+            if (thisLine != null) {
+                conn.deleteSurroundingText(thisLine.length, 0)
+                val newLine = thisLine.replaceFirst("", "    ")
+                conn.commitText(newLine, 1)
+            }
             conn.endBatchEdit()
         }
         IndentBack -> {
             conn.beginBatchEdit()
             val prefix = conn.getTextBeforeCursor(100, 0)
-            val thisLine = prefix?.getThisLine() ?: return
-            conn.deleteSurroundingText(thisLine.length, 0)
-            val newLine = thisLine.replaceFirst("    ", "")
-            conn.commitText(newLine, 1)
+            val thisLine = prefix?.getThisLine()
+            if (thisLine != null) {
+                conn.deleteSurroundingText(thisLine.length, 0)
+                val newLine = thisLine.replaceFirst("    ", "")
+                conn.commitText(newLine, 1)
+            }
             conn.endBatchEdit()
         }
         CodeSelection -> {
@@ -516,7 +544,7 @@ fun performKeyAction(
             }
             conn.endBatchEdit()
         }
-        KeyAction.Image -> TODO()
+        Image -> TODO()
         Link -> TODO()
         Table -> TODO()
         Empty -> {}
@@ -525,6 +553,22 @@ fun performKeyAction(
 
 fun CharSequence.getThisLine(): String {
     return this.split("\n").last()
+}
+
+fun String.isOrderedList(): Boolean {
+    return this.first().isDigit() &&
+           this.getOrNull(1) == '.' &&
+           this.getOrNull(2) == ' '
+}
+
+/**
+ * Tries to increment the given string, if not possible it will return the given string
+ */
+fun String.nextElement(): String {
+    val firstDigit = this.first { it.isDigit() }
+    val newValue = firstDigit.digitToIntOrNull()?.plus(1)?.digitToChar() ?: return this
+    val result =  this.replaceFirst(firstDigit, newValue)
+    return result
 }
 
 data class KeyItem(val keyAction: KeyAction, val keyType: KeyType)
