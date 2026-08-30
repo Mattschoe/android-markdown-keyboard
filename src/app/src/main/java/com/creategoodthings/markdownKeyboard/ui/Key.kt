@@ -5,7 +5,6 @@ import android.media.AudioManager
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.takeOrElse
 import com.creategoodthings.markdownKeyboard.editor.KeyAction
+import com.creategoodthings.markdownKeyboard.ui.theme.LocalKeyboardColors
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -40,7 +39,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 private const val REPEAT_TIMEOUT_MS = 60_000L
 private const val REPEAT_INTERVAL_MS = 60L
-private const val KEY_BORDER_WIDTH = 1f
 private const val KEY_CORNER_RADIUS = 7f
 private const val KEY_MIN_HEIGHT = 40f
 private const val KEY_FONT_SIZE = 22f
@@ -68,10 +66,7 @@ fun Key(
     val scope = rememberCoroutineScope()
     var repeating by remember { mutableStateOf(false) }
 
-    val background =
-        if (isPressed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-    val foreground =
-        if (isPressed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondary
+    val colors = LocalKeyboardColors.current.forTone(key.tone, isPressed)
 
     fun feedback() {
         if (VIBRATE_ON_CLICK) view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -104,12 +99,7 @@ fun Key(
         modifier = modifier
             .defaultMinSize(minHeight = KEY_MIN_HEIGHT.dp)
             .clip(RoundedCornerShape(KEY_CORNER_RADIUS.dp))
-            .border(
-                width = KEY_BORDER_WIDTH.dp,
-                color = MaterialTheme.colorScheme.outline,
-                shape = RoundedCornerShape(KEY_CORNER_RADIUS.dp),
-            )
-            .background(background)
+            .background(colors.background)
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -137,14 +127,14 @@ fun Key(
             is KeyLabel.Text -> Text(
                 text = label.value,
                 fontSize = label.fontSize.takeOrElse { KEY_FONT_SIZE.sp },
-                color = foreground,
+                color = colors.foreground,
                 modifier = content,
             )
 
             is KeyLabel.Icon -> Icon(
                 imageVector = label.image,
                 contentDescription = description,
-                tint = foreground,
+                tint = colors.foreground,
                 modifier = content,
             )
         }

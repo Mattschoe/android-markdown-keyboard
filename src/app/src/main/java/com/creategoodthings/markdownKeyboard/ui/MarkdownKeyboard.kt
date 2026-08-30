@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeGestures
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -33,6 +32,8 @@ import com.creategoodthings.markdownKeyboard.R
 import com.creategoodthings.markdownKeyboard.editor.InlineStyle
 import com.creategoodthings.markdownKeyboard.editor.KeyAction
 import com.creategoodthings.markdownKeyboard.editor.ListKind
+import com.creategoodthings.markdownKeyboard.ui.theme.KeyTone
+import com.creategoodthings.markdownKeyboard.ui.theme.LocalKeyboardColors
 
 private val LETTER_ROW_TOP = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
 private val LETTER_ROW_MIDDLE = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
@@ -47,6 +48,14 @@ private const val SPACE_BETWEEN_KEYS = 2.5f
  * the room left for labels unchanged.
  */
 private const val KEYBOARD_EDGE_PADDING = 5f
+
+/**
+ * Breathing room above the first row. Matched to [SPACE_BETWEEN_ROWS] so the band over the top
+ * row reads as one more gap in the same rhythm, rather than the row being clipped by the top of
+ * the keyboard window. The bottom edge needs no equivalent: it is set by the system affordance
+ * inset instead (see [systemAffordanceInsets]).
+ */
+private const val KEYBOARD_TOP_PADDING = SPACE_BETWEEN_ROWS
 
 /** The `?123` label is a word, not a character, so it is set smaller than a letter key. */
 private const val SYMBOLS_FONT_SIZE = 16f
@@ -69,8 +78,12 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = KEYBOARD_EDGE_PADDING.dp)
+            .background(LocalKeyboardColors.current.background)
+            .padding(
+                start = KEYBOARD_EDGE_PADDING.dp,
+                end = KEYBOARD_EDGE_PADDING.dp,
+                top = KEYBOARD_TOP_PADDING.dp,
+            )
     ) {
         KeyRow {
             Key(
@@ -177,6 +190,7 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
                 KeyItem(
                     action = KeyAction.IndentForward,
                     label = KeyLabel.Icon(icon(R.drawable.tab_in_icon), R.string.key_indent),
+                    tone = KeyTone.Utility,
                 ),
                 onAction, Modifier.weight(1.5f),
             )
@@ -185,6 +199,7 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
                 KeyItem(
                     action = KeyAction.IndentBack,
                     label = KeyLabel.Icon(icon(R.drawable.tab_out_icon), R.string.key_outdent),
+                    tone = KeyTone.Utility,
                 ),
                 onAction, Modifier.weight(1.5f),
             )
@@ -196,6 +211,7 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
                 KeyItem(
                     action = KeyAction.Noop,
                     label = KeyLabel.Icon(shiftIcon(shift), shiftDescription(shift)),
+                    tone = KeyTone.Utility,
                 ),
                 onAction,
                 Modifier.weight(1.5f),
@@ -207,6 +223,7 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
                     action = KeyAction.Backspace,
                     label = KeyLabel.Icon(icon(R.drawable.delete_icon), R.string.key_backspace),
                     repeatable = true,
+                    tone = KeyTone.Utility,
                 ),
                 onAction, Modifier.weight(1.5f),
             )
@@ -220,6 +237,7 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
                 KeyItem(
                     action = KeyAction.Noop,
                     label = KeyLabel.Text("?123", R.string.key_symbols, SYMBOLS_FONT_SIZE.sp),
+                    tone = KeyTone.Utility,
                 ),
                 onAction, Modifier.weight(1.3f),
             )
@@ -227,11 +245,12 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
                 KeyItem(
                     action = KeyAction.Noop,
                     label = KeyLabel.Icon(icon(R.drawable.emoji_icon), R.string.key_emoji),
+                    tone = KeyTone.Utility,
                 ),
                 onAction, Modifier.weight(0.9f),
             )
             Key(
-                KeyItem(KeyAction.CommitText(","), KeyLabel.Text(",")),
+                KeyItem(KeyAction.CommitText(","), KeyLabel.Text(","), tone = KeyTone.Utility),
                 onAction, Modifier.weight(1.15f),
             )
             Key(
@@ -240,13 +259,14 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
                 Modifier.weight(3.8f),
             )
             Key(
-                KeyItem(KeyAction.CommitText("."), KeyLabel.Text(".")),
+                KeyItem(KeyAction.CommitText("."), KeyLabel.Text("."), tone = KeyTone.Utility),
                 onAction, Modifier.weight(1.15f),
             )
             Key(
                 KeyItem(
                     action = KeyAction.Enter,
                     label = KeyLabel.Icon(icon(R.drawable.return_icon), R.string.key_enter),
+                    tone = KeyTone.Accent,
                 ),
                 onAction, Modifier.weight(1.7f),
             )
