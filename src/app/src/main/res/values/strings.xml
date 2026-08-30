@@ -17,6 +17,8 @@
     <string name="key_indent">Indent</string>
     <string name="key_outdent">Outdent</string>
     <string name="key_shift">Shift</string>
+    <string name="key_shift_on">Shift on, double tap for caps lock</string>
+    <string name="key_caps_lock">Caps lock on</string>
     <string name="key_backspace">Backspace</string>
     <string name="key_symbols">Symbols</string>
     <string name="key_emoji">Emoji</string>

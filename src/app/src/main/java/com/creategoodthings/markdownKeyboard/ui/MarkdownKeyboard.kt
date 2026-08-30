@@ -1,5 +1,7 @@
 package com.creategoodthings.markdownKeyboard.ui
 
+import android.os.SystemClock
+import android.view.ViewConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,12 +13,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeGestures
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -24,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.creategoodthings.markdownKeyboard.R
 import com.creategoodthings.markdownKeyboard.editor.InlineStyle
 import com.creategoodthings.markdownKeyboard.editor.KeyAction
@@ -36,17 +41,36 @@ private val LETTER_ROW_BOTTOM = listOf("z", "x", "c", "v", "b", "n", "m")
 private const val SPACE_BETWEEN_ROWS = 10f
 private const val SPACE_BETWEEN_KEYS = 2.5f
 
+/**
+ * Breathing room down the left and right edges, so the outer keys do not run into the screen
+ * edge. Paid for out of the padding inside each key (see `KEY_HORIZONTAL_PADDING`), which keeps
+ * the room left for labels unchanged.
+ */
+private const val KEYBOARD_EDGE_PADDING = 5f
+
+/** The `?123` label is a word, not a character, so it is set smaller than a letter key. */
+private const val SYMBOLS_FONT_SIZE = 16f
+
 /** Combining long stroke overlay: renders the label as a struck-through S. */
 private const val STRIKETHROUGH_LABEL = "S̶"
 
 @Composable
 fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
-    var capslock by remember { mutableStateOf(false) }
+    var shift by remember { mutableStateOf(ShiftState.Off) }
+    var lastShiftTapMs by remember { mutableLongStateOf(0L) }
+    val doubleTapTimeoutMs = remember { ViewConfiguration.getDoubleTapTimeout().toLong() }
+
+    fun onShiftTap() {
+        val now = SystemClock.uptimeMillis()
+        shift = shift.onTap(now - lastShiftTapMs, doubleTapTimeoutMs)
+        lastShiftTapMs = now
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = KEYBOARD_EDGE_PADDING.dp)
     ) {
         KeyRow {
             Key(
@@ -144,7 +168,7 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
         RowGap()
 
         KeyRow {
-            LetterKeys(LETTER_ROW_TOP, capslock, onAction)
+            LetterKeys(LETTER_ROW_TOP, shift, onAction) { shift = shift.afterCharacter() }
         }
         RowGap()
 
@@ -156,7 +180,7 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
                 ),
                 onAction, Modifier.weight(1.5f),
             )
-            LetterKeys(LETTER_ROW_MIDDLE, capslock, onAction)
+            LetterKeys(LETTER_ROW_MIDDLE, shift, onAction) { shift = shift.afterCharacter() }
             Key(
                 KeyItem(
                     action = KeyAction.IndentBack,
@@ -171,13 +195,13 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
             Key(
                 KeyItem(
                     action = KeyAction.Noop,
-                    label = KeyLabel.Icon(icon(R.drawable.shift_icon), R.string.key_shift),
+                    label = KeyLabel.Icon(shiftIcon(shift), shiftDescription(shift)),
                 ),
                 onAction,
                 Modifier.weight(1.5f),
-                onClick = { capslock = !capslock },
+                onClick = { onShiftTap() },
             )
-            LetterKeys(LETTER_ROW_BOTTOM, capslock, onAction)
+            LetterKeys(LETTER_ROW_BOTTOM, shift, onAction) { shift = shift.afterCharacter() }
             Key(
                 KeyItem(
                     action = KeyAction.Backspace,
@@ -189,31 +213,42 @@ fun MarkdownKeyboard(onAction: (KeyAction) -> Unit) {
         }
         RowGap()
 
+        // Every key in this row is weighted, so the space bar can be held to a set share of the
+        // width instead of swallowing whatever the others leave over.
         KeyRow {
             Key(
-                KeyItem(KeyAction.Noop, KeyLabel.Text("?123", R.string.key_symbols)),
-                onAction,
+                KeyItem(
+                    action = KeyAction.Noop,
+                    label = KeyLabel.Text("?123", R.string.key_symbols, SYMBOLS_FONT_SIZE.sp),
+                ),
+                onAction, Modifier.weight(1.3f),
             )
             Key(
                 KeyItem(
                     action = KeyAction.Noop,
                     label = KeyLabel.Icon(icon(R.drawable.emoji_icon), R.string.key_emoji),
                 ),
-                onAction,
+                onAction, Modifier.weight(0.9f),
             )
-            Key(KeyItem(KeyAction.CommitText(","), KeyLabel.Text(",")), onAction)
+            Key(
+                KeyItem(KeyAction.CommitText(","), KeyLabel.Text(",")),
+                onAction, Modifier.weight(1.15f),
+            )
             Key(
                 KeyItem(KeyAction.CommitText(" "), KeyLabel.Text(" "), repeatable = true),
                 onAction,
-                Modifier.weight(1f),
+                Modifier.weight(3.8f),
             )
-            Key(KeyItem(KeyAction.CommitText("."), KeyLabel.Text(".")), onAction)
+            Key(
+                KeyItem(KeyAction.CommitText("."), KeyLabel.Text(".")),
+                onAction, Modifier.weight(1.15f),
+            )
             Key(
                 KeyItem(
                     action = KeyAction.Enter,
                     label = KeyLabel.Icon(icon(R.drawable.return_icon), R.string.key_enter),
                 ),
-                onAction,
+                onAction, Modifier.weight(1.7f),
             )
         }
 
@@ -242,17 +277,34 @@ private fun systemAffordanceInsets(): WindowInsets =
 @Composable
 private fun RowScope.LetterKeys(
     letters: List<String>,
-    capslock: Boolean,
+    shift: ShiftState,
     onAction: (KeyAction) -> Unit,
+    onTyped: () -> Unit,
 ) {
     for (letter in letters) {
-        val value = if (capslock) letter.uppercase() else letter
+        val value = if (shift.isUpperCase) letter.uppercase() else letter
         Key(
             key = KeyItem(KeyAction.CommitText(value), KeyLabel.Text(value)),
             onAction = onAction,
             modifier = Modifier.weight(1f),
+            onClick = onTyped,
         )
     }
+}
+
+@Composable
+private fun shiftIcon(shift: ShiftState): ImageVector = icon(
+    when (shift) {
+        ShiftState.Off -> R.drawable.shift_icon
+        ShiftState.Shifted -> R.drawable.shift_filled
+        ShiftState.Locked -> R.drawable.caps_lock_filled
+    }
+)
+
+private fun shiftDescription(shift: ShiftState): Int = when (shift) {
+    ShiftState.Off -> R.string.key_shift
+    ShiftState.Shifted -> R.string.key_shift_on
+    ShiftState.Locked -> R.string.key_caps_lock
 }
 
 @Composable

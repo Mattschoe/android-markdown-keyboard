@@ -3,6 +3,7 @@ package com.creategoodthings.markdownKeyboard.ui
 import android.content.Context.AUDIO_SERVICE
 import android.media.AudioManager
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -30,6 +31,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.takeOrElse
 import com.creategoodthings.markdownKeyboard.editor.KeyAction
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
@@ -39,12 +41,19 @@ import kotlinx.coroutines.withTimeoutOrNull
 private const val REPEAT_TIMEOUT_MS = 60_000L
 private const val REPEAT_INTERVAL_MS = 60L
 private const val KEY_BORDER_WIDTH = 1f
-private const val KEY_CORNER_RADIUS = 5f
+private const val KEY_CORNER_RADIUS = 7f
 private const val KEY_MIN_HEIGHT = 40f
-private const val KEY_HORIZONTAL_PADDING = 8f
+private const val KEY_FONT_SIZE = 22f
+/**
+ * Room reserved around a label inside its key. Deliberately small: the keys are weighted, so
+ * anything spent here is width the row cannot give back, and the space goes to the keyboard's
+ * outer edges instead (`KEYBOARD_EDGE_PADDING`).
+ */
+private const val KEY_HORIZONTAL_PADDING = 4f
 private const val VIBRATE_ON_CLICK = true
 private const val SOUND_ON_CLICK = false
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun Key(
     key: KeyItem,
@@ -127,7 +136,7 @@ fun Key(
         when (val label = key.label) {
             is KeyLabel.Text -> Text(
                 text = label.value,
-                fontSize = 22.sp,
+                fontSize = label.fontSize.takeOrElse { KEY_FONT_SIZE.sp },
                 color = foreground,
                 modifier = content,
             )
