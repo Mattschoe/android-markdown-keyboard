@@ -86,7 +86,7 @@ class KnownLimitationsTest {
 
     // ---- the keyboard's own dead keys ----
 
-    /** `?123` and the emoji key are `Noop`; no symbol layer or picker exists yet. */
+    /** The emoji key is `Noop`, and so are the page-switch keys: a page is UI state only. */
     @Test fun aNoopReadsNothingAndEditsNothing() {
         assertEquals(
             com.creategoodthings.markdownKeyboard.editor.ContextNeed.None,

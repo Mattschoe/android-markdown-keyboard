@@ -8,19 +8,39 @@ import com.creategoodthings.markdownKeyboard.ui.theme.KeyTone
 /**
  * One key: what it does, what it looks like, and how it behaves when held.
  *
- * A key with a [longPressAction] fires that once on hold; a [repeatable] one repeats its own
- * action while held. The two are exclusive, and a key that is neither simply fires once.
- *
  * @param tone how prominently the key is painted. Defaults to [KeyTone.Primary] because most
  *   keys put something in the document; the ones that operate the keyboard say so explicitly.
  */
 data class KeyItem(
     val action: KeyAction,
     val label: KeyLabel,
-    val longPressAction: KeyAction? = null,
-    val repeatable: Boolean = false,
+    val hold: HoldBehaviour = HoldBehaviour.None,
     val tone: KeyTone = KeyTone.Primary,
 )
+
+/**
+ * What holding a key does. Exactly one of these, which is why it is a sealed type rather than a
+ * nullable action plus a boolean plus a list: the gesture loop in [Key] wants a total `when`.
+ */
+sealed interface HoldBehaviour {
+    /** Fires the key's own action a second time. */
+    data object None : HoldBehaviour
+
+    /** Fires a different action, once. */
+    data class Action(val action: KeyAction) : HoldBehaviour
+
+    /** Repeats the key's own action while held. */
+    data object Repeat : HoldBehaviour
+
+    /**
+     * Pops a strip of characters above the key that the finger slides onto and releases over.
+     *
+     * [values] holds the key's own character as well as its alternates: the one at [baseIndex] is
+     * parked over the key and is what a hold-and-release without sliding commits, so holding a key
+     * by mistake costs nothing.
+     */
+    data class Alternates(val values: List<String>, val baseIndex: Int = 0) : HoldBehaviour
+}
 
 sealed interface KeyLabel {
     /** String resource read out for accessibility. */

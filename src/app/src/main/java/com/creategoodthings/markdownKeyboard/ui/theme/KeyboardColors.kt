@@ -37,6 +37,11 @@ data class KeyboardColors(
     val accentKey: Color,
     val accentKeyPressed: Color,
     val onAccentKey: Color,
+    /** The alternates strip, which floats over the keys and so cannot reuse a key colour. */
+    val strip: Color,
+    val onStrip: Color,
+    val stripHighlight: Color,
+    val onStripHighlight: Color,
 ) {
     fun forTone(tone: KeyTone, pressed: Boolean): KeyColors = when (tone) {
         KeyTone.Primary -> KeyColors(if (pressed) keyPressed else key, onKey)
@@ -60,6 +65,10 @@ val LightKeyboardColors = KeyboardColors(
     accentKey = AccentLight,
     accentKeyPressed = AccentLightPressed,
     onAccentKey = OnAccentLight,
+    strip = KeyWhite,
+    onStrip = NeutralLight10,
+    stripHighlight = AccentLight,
+    onStripHighlight = OnAccentLight,
 )
 
 /** Dark: the same layering inverted — a press lifts a key toward the light instead of away. */
@@ -74,6 +83,10 @@ val DarkKeyboardColors = KeyboardColors(
     accentKey = AccentDark,
     accentKeyPressed = AccentDarkPressed,
     onAccentKey = OnAccentDark,
+    strip = NeutralDark30,
+    onStrip = NeutralDark90,
+    stripHighlight = AccentDark,
+    onStripHighlight = OnAccentDark,
 )
 
 val LocalKeyboardColors = staticCompositionLocalOf { LightKeyboardColors }

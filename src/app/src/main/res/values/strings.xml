@@ -21,6 +21,10 @@
     <string name="key_caps_lock">Caps lock on</string>
     <string name="key_backspace">Backspace</string>
     <string name="key_symbols">Symbols</string>
+    <string name="key_more_symbols">More symbols</string>
+    <string name="key_letters">Letters</string>
+    <string name="key_numeric">Number pad</string>
+    <string name="key_space">Space</string>
     <string name="key_emoji">Emoji</string>
     <string name="key_enter">Enter</string>
 </resources>

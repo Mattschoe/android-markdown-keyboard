@@ -81,10 +81,25 @@ multi-character selection, and only when `windowStart >= 0`.
 
 ### `ui/`
 
-`MarkdownKeyboard` is a static layout of `KeyItem`s; `Key` handles press feedback, long-press
-actions and key repeat (repeat stays on the main dispatcher — `InputConnection` is not safe off it).
-Actions are passed into `ComposeMdKeyboardView` rather than pulled from context, so the keyboard
-composes in a preview without a service behind it.
+`MarkdownKeyboard` is the shell: two markdown rows that never change, then one of four character
+pages (`KeyboardPage` — letters, `?123`, `=\<`, the number pad), each in its own `*Rows.kt` file
+and each four rows tall, so the keyboard is always six rows and never resizes when the page
+changes. Shared row helpers live in `KeyRows.kt`.
+
+Page and shift are UI state held in `MarkdownKeyboard`. Neither has a `KeyAction`: those keys
+carry `Noop` and do their work in `Key`'s `onClick`, which is what keeps page and case out of
+`editor/`. Actions are passed into `ComposeMdKeyboardView` rather than pulled from context, so the
+keyboard composes in a preview without a service behind it.
+
+`Key` runs one `pointerInput` gesture loop — tap, long press, key repeat (on the main dispatcher;
+`InputConnection` is not safe off it) and the slide-to-pick alternates strip — because two gesture
+detectors on one node fight over the pointer. It therefore has to supply its own press state
+(`PressInteraction` into a `MutableInteractionSource`) and its own click semantics for TalkBack,
+which `combinedClickable` used to give for free. The strip is drawn in-tree as the last child of
+the keyboard's box, not in a `Popup`: Android delivers a whole gesture to the window that saw the
+first touch, so a popup window could never see the sliding finger anyway. `AlternatesGeometry` is
+the placement and hit-testing maths, kept free of Android and Compose types so it can be tested on
+the host JVM.
 
 ## Testing
 
@@ -96,7 +111,10 @@ suite: it is the only thing tying the pure layer to a real editor. `assertPureKe
 two, and is only for the cases in `KnownLimitationsTest` that knowingly break containment.
 
 Where things live: one test class per handler in `test/…/editor/rules/`, one per model type in
-`editor/document/`, `TruncationTest` for windows that did not reach the document edges, and
+`editor/document/`, the two Android-free UI state machines in `test/…/ui/`
+(`ShiftStateTest`, `AlternatesGeometryTest` — there is no Compose UI test infrastructure, so
+anything the keyboard gets wrong on screen should be pushed down into one of those and pinned
+there), `TruncationTest` for windows that did not reach the document edges, and
 `KnownLimitationsTest` for behaviour that is wrong-but-recorded. A bug reported against the
 keyboard is written into the matching rule class as the behaviour that is wanted.
 
@@ -113,4 +131,7 @@ TESTS THAT MAKE SURE AN REGRESSION ISNT INTRODUCED LATER.
 - Indent/outdent acts on the caret's line only, and with a multi-line selection outside a list the
   applier deletes the selection first — the lines below the first are lost.
 - `ToggleQuote` handles a single `> ` prefix, with no nesting.
-- The `?123` and emoji keys are `Noop`; Shift is a caps lock that never auto-releases.
+- The emoji key is `Noop`; there is no picker behind it.
+- The alternates strip is one row wide, so a key cannot offer more entries than fit across the
+  keyboard; `AlternatesHostState.open` refuses rather than truncating, and the key falls back to
+  firing its own action on hold.
